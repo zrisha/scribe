@@ -1,0 +1,23 @@
+version: '3.7'
+
+services:
+  scribe:
+    build: .
+    ports:
+      - "3333:80"
+    depends_on:
+      - mongo
+    environment:
+      VARIABLE_NAME: scribe
+      MONGO_URL: mongodb://scribe:scribe@mongo:27017/?authSource=admin
+    command: "/start-reload.sh"
+    volumes:
+      - ./scribe:/app/app
+  mongo:
+    image: mongo
+    ports:
+      - "3334:27017"
+    environment:
+      MONGO_INITDB_DATABASE: scribe
+      MONGO_INITDB_ROOT_USERNAME: scribe
+      MONGO_INITDB_ROOT_PASSWORD: scribe

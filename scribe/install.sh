@@ -1,0 +1,1 @@
+docker compose exec scribe /bin/bash -c 'cd app && poetry install'
