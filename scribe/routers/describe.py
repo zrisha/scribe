@@ -1,24 +1,18 @@
 from fastapi import APIRouter, Request
 from ..models import User
+from ..lib import find_insert_user
 
 router = APIRouter()
 
-
-@router.get("/user/{user_id}", tags=["user"], response_model = User)
+@router.get("/user/{user_id}", tags=["user"], response_model=User)
 async def describe_user(request: Request, user_id: str):
-  db = request.app.state.db.users
+  db = request.app.state.db
 
-  user = await db.find_one({'user_id': user_id})
-
-  if(user):
-    return User.from_mongo(user)
+  user = await find_insert_user(db.users, user_id)
+  
+  if('error' in user):
+    return user['error']
   else:
-    user = User(user_id=user_id)
-    result = await db.insert_one(user.to_mongo())
-    if(result.inserted_id):
-      user.id = result.inserted_id
-      return user
-    else:
-      return {"error": "Unknown Database error"}
+    return user
 
 

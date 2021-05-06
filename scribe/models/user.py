@@ -1,8 +1,6 @@
-from typing import Optional
-from .mongo import MongoModel, OID
-from pydantic import Field
+from pydantic import Field, BaseModel
 
-class User(MongoModel):
+class User(BaseModel):
   user_id: str = Field()
   rating: int = 1000
   count: int = 0
