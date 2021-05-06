@@ -1,7 +1,6 @@
 import math
 import copy
 from collections import defaultdict 
-from functools import partialmethod
 
 
 DEFAULT_PARAMS = {
@@ -78,32 +77,41 @@ class Elo:
   @param {Boolean} concepts whether the model includes concepts
   @return Nothing
   """
-  def initalize_model(self, item, concepts, clear=True):
+  def initalizeModel(self, data, user_id):
+    data = copy.deepcopy(data)
     self.predictions = {}
-
-    if(clear | (hasattr(self, 'users') == False)):
-      self.users = defaultdict(lambda: {
-          'rating': 1000,
-          'count': 0,
-          'concepts': defaultdict(lambda: {
-              'rating': 1000,
-              'count': 0
-          })
-      })
-
-    if(item):
-      self.predictions['item'] = []
-      if(hasattr(self, 'items') == False): self.items = defaultdict(lambda: {
-          'rating': 1000,
-          'count': 0
-      })
-
-    if(concepts):
-      self.predictions['concepts'] = []
-      if(hasattr(self, 'concepts') == False): self.concepts = defaultdict(lambda: {
+    items = data['items'] if 'items' in data else {}
+    concepts = data['concepts'] if 'concepts' in data else {}
+    
+    default_user = {
+        'user_id': user_id,
+        'rating': 1000,
+        'count': 0
+    }
+    
+    if('user' in data):
+        user = {**default_user, **data['user']}
+    
+    user['concepts'] = defaultdict(lambda: {
           'rating': 1000,
           'count': 0
-      })
+    }, user['concepts'] if 'concepts' in user else {})
+    
+    
+    self.users = {}
+    self.users[user_id] = user
+
+    self.predictions['item'] = []
+    self.items = defaultdict(lambda: {
+          'rating': 1000,
+          'count': 0
+    }, items)
+    
+    self.predictions['concepts'] = []
+    self.concepts = defaultdict(lambda: {
+          'rating': 1000,
+          'count': 0
+    }, concepts)
 
   """
   Calculate expected scores of concepts
@@ -177,66 +185,12 @@ class Elo:
   @param {String} concepts column name of concepts
   @return self
   """
-  def run(self, data, result, user, item=False, concepts=False, clear=True):
-    if((item == False) & (concepts == False)):
-      print('Must provide at least item or concept labels')
-
-    self.initalize_model(item != False, concepts != False, clear)
-    columns = [x for x in [result, user, item, concepts] if x != False]
-
-    names = dict()
-    names[result] =  'result'
-    names[user] =  'user'
-    if(item): names[item] = 'item'
-    if(concepts): names[concepts] = 'concepts'
-
-    for match in data[columns].rename(columns=names).itertuples():
-      ###
-      # Calculate predictions
-      ###
-      p_item = False
-      p_concepts = False
-
-      if(item): 
-        p_item = self.expectedScore(self.users[match['user']]['rating'], self.items[match['item']]['rating'])
-        self.predictions['item'].append(p_item)
-
-      if(concepts): 
-        p_concepts = self.expectedScoreConcept(self.users[match['user']], match['concepts'])
-        self.predictions['concepts'].append(sum(p_concepts.values()) /len(p_concepts))
-
-      ###
-      # Calculate Rating updates, collect counts for uncertainty function
-      ###
-
-      # User vs Item 
-      if(p_item): self.updateItem(match, p_item)
-
-      if(p_concepts): self.updateConcepts(match, p_concepts)
-
-      
-
-    return self
-
-  train = partialmethod(run, clear=False)
-  test = partialmethod(run, clear=True)
-  """
-  Compute a single Elo match
-  @param {String} result column name of result
-  @param {String} user column name of user
-  @param {String} item column name of item
-  @param {String} concepts column name of concepts
-  @return self
-  """
-  def match(self, result, user, item=False, concepts=False, data = {}):
+  def run(self, result, user, item=False, concepts=False, data = {}):
     if((item == False) & (concepts == False)):
       print('Must provide at least item or concept')
     
-    data['users'] = {}
-    data['users'][user] = data['user']
-    data.pop('user', None)
-    self.load_model(data)
-    
+
+    self.initalizeModel(data, user)
     columns = [x for x in [result, user, item, concepts] if x != False]
     
     match = {'result': result, 'user': user, 'item': item, 'concepts': concepts}
@@ -268,45 +222,6 @@ class Elo:
 
     return self
 
-  """
-  Internal function for loading model data 
-  @param {Dict} data the model data to load
-  @param {String} user_id the id of the user involved
-  @return Nothing
-  """
-  def load_model(self, data):
-    data = copy.deepcopy(data)
-    self.predictions = {}
-    items = data['items'] if 'items' in data else {}
-    concepts = data['concepts'] if 'concepts' in data else {}
-    users = data['users'] if 'users' in data else {}
-    
-    default_user = {
-        'rating': 1000,
-        'count': 0
-    }
-
-    for user in users:
-      users[user] = {**default_user, **users[user]}
-      users[user]['concepts'] = defaultdict(lambda: {
-          'rating': 1000,
-          'count': 0
-      }, users[user]['concepts'] if 'concepts' in users[user] else {})
-    
-    
-    self.users = users
-
-    self.predictions['item'] = []
-    self.items = defaultdict(lambda: {
-          'rating': 1000,
-          'count': 0
-    }, items)
-    
-    self.predictions['concepts'] = []
-    self.concepts = defaultdict(lambda: {
-          'rating': 1000,
-          'count': 0
-    }, concepts)
 
   """
   The calculated new rating based on the expected outcone, actual outcome, and previous score

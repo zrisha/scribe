@@ -1,10 +1,9 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import describe, ascribe, prescribe
 from .database import get_db
-from pydantic import BaseModel
 
-scribe = FastAPI(response_mode=BaseModel,  blamjnefjn=BaseModel)
+scribe = FastAPI()
 
 scribe.add_middleware(
     CORSMiddleware,
@@ -31,25 +30,6 @@ scribe.include_router(
   prefix="/prescribe",
   tags=["prescribe"]
 )
-# app.include_router(items.router)
-# app.include_router(
-#     admin.router,
-#     prefix="/admin",
-#     tags=["admin"],
-#     dependencies=[Depends(get_token_header)],
-#     responses={418: {"description": "I'm a teapot"}},
-# )
-
-
-@scribe.get("/")
-def read_root():
-    print(Elo)
-    return {"Hello": "World"}
-
-
-@scribe.get("/items/{item_id}")
-def read_item(item_id: int, q: str = None):
-    return {"item_id": item_id, "q": q}
 
 
 @scribe.on_event("startup")

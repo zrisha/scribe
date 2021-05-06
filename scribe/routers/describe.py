@@ -4,7 +4,7 @@ from ..lib import find_insert_user
 
 router = APIRouter()
 
-@router.get("/user/{user_id}", tags=["user"], response_model=User)
+@router.get("/user/{user_id}", tags=["elo"], response_model=User)
 async def describe_user(request: Request, user_id: str):
   db = request.app.state.db
 

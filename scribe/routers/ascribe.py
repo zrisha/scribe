@@ -23,7 +23,7 @@ async def ascribe_user(request: Request, event:Event):
   }
 
   e = Elo()
-  e.run(event.result, event.user_id, event.item, event.concepts, elo_data)
+  e.match(event.result, event.user_id, event.item, event.concepts, elo_data)
 
   newUser = User(**e.users[event.user_id])
 
