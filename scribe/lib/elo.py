@@ -232,12 +232,11 @@ class Elo:
     if((item == False) & (concepts == False)):
       print('Must provide at least item or concept')
     
-    data['users'] = {}
-    data['users'][user] = data['user']
-    data.pop('user', None)
-    self.load_model(data)
-    
-    columns = [x for x in [result, user, item, concepts] if x != False]
+    model_data = {'users': {}, **data}
+    model_data['users'][user] = model_data['user']
+    model_data.pop('user', None)
+
+    self.load_model(model_data)
     
     match = {'result': result, 'user': user, 'item': item, 'concepts': concepts}
 

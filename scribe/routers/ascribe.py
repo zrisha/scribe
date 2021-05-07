@@ -14,7 +14,11 @@ async def ascribe_user(request: Request, event:Event):
   if('error' in user):
     return user['error']
   
-  globals = await db.globals.find_one({'app_id': event.app_id})
+  # Specifies projection, the keys to return from concepts and items
+  fields = {f'concepts.{concept}': 1 for concept in event.concepts}
+  fields[f'items.{event.item}'] = 1
+
+  globals = await db.globals.find_one({'app_id': event.app_id}, fields)
 
   elo_data = {
     'user': user.dict(),
@@ -27,12 +31,14 @@ async def ascribe_user(request: Request, event:Event):
 
   newUser = User(**e.users[event.user_id])
 
+  update = {f'concepts.{concept}': e.concepts[concept] for concept in e.concepts}
+  update[f'items.{event.item}'] = e.items[event.item]
+
   user_result = await db.users.update_one({'user_id': event.user_id}, {"$set": newUser.dict()})
-  global_result = await db.globals.update_one({'app_id': event.app_id}, {"$set": {"concepts": e.concepts, "items": e.items}})
+  global_result = await db.globals.update_one({'app_id': event.app_id}, {"$set": update})
 
   if(user_result.acknowledged and global_result.acknowledged):
     return newUser
   else:
     return {'error': 'Update failed'}
-
 

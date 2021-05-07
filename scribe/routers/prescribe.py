@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request
 from ..models import ItemSet, ItemPrescriptions
 from ..lib import Elo, find_insert_user
+from itertools import chain
 
 router = APIRouter()
 
@@ -13,7 +14,13 @@ async def prescribe_item(request: Request, item_set: ItemSet):
   if('error' in user):
     return user['error']
 
-  globals = await db.globals.find_one({'app_id': item_set.app_id})
+  concepts = set(chain.from_iterable(
+      [item['concepts'] for item in item_set.dict()['items']]
+  ))
+  concepts = {f'concepts.{concept}': 1 for concept in concepts}
+  items = {f'items.{item["id"]}': 1 for item in item_set.dict()['items']}
+
+  globals = await db.globals.find_one({'app_id': item_set.app_id}, {*items, *concepts})
 
   elo_data = {
     'user': user.dict(),
@@ -24,7 +31,7 @@ async def prescribe_item(request: Request, item_set: ItemSet):
   predictions = []
   for item in item_set.dict()['items']:
     e = Elo()
-    e.run(1, item_set.user_id, item['id'], item['concepts'], elo_data)
+    e.match(1, item_set.user_id, item['id'], item['concepts'], elo_data)
     predictions.append({
       'item': e.predictions['item'][0],
       'concepts': e.predictions['concepts'][0],
